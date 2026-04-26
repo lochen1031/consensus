@@ -2,8 +2,8 @@ name: Deploy Vite Site to Pages
 
 on:
   push:
-    branches: ["main"] # 當你推送到 main 分支時觸發
-  workflow_dispatch: # 允許手動觸發
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -27,7 +27,10 @@ jobs:
         run: npm install
 
       - name: Build
+        # 這裡會讀取你在 GitHub Secrets 設定的金鑰
         run: npm run build
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -35,7 +38,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist' # Vite 預設打包後的資料夾
+          path: './dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
