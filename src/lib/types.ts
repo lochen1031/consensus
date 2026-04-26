@@ -13,7 +13,7 @@ export interface Prediction {
   title: string;
   deadline: number;
   criteria: string;
-  status: 'active' | 'judging' | 'resolved';
+  status: 'active' | 'judging' | 'resolving' | 'resolved';
   result: 'yes' | 'no' | null;
   reason: string | null;
   totalPool: {
