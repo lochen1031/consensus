@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Prediction } from '../lib/types';
 import { formatDistanceToNow, isPast } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
-import { Bot, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Bot, AlertCircle, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
 import { judgePrediction } from '../services/aiService';
 import { settlePrediction } from '../services/dbService';
 
@@ -91,22 +91,30 @@ export const PredictionCard = ({ prediction, onBetClick }: PredictionCardProps) 
             )}
 
             {isActive && pastDeadline && (
-               <button 
-                onClick={handleJudge}
-                disabled={isJudging}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-               >
-                 <Bot className="w-4 h-4" />
-                 {isJudging ? "AI is judging..." : "Judge Result"}
-               </button>
+               <div className="flex items-center gap-2">
+                 <button 
+                  onClick={handleJudge}
+                  disabled={isJudging}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                 >
+                   <Bot className="w-4 h-4" />
+                   {isJudging ? "AI is judging..." : "Judge Result"}
+                 </button>
+               </div>
             )}
         </div>
 
         {prediction.status === 'resolved' && prediction.reason && (
-           <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm flex gap-3 text-slate-700">
-              <Bot className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+           <div className={`mt-4 p-3 ${prediction.result === null ? 'bg-slate-100 border-slate-200' : 'bg-slate-50 border-slate-100'} rounded-xl border flex gap-3 text-sm text-slate-700`}>
+              {prediction.result === null ? (
+                 <RotateCcw className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+              ) : (
+                 <Bot className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+              )}
               <div>
-                <span className="font-semibold text-slate-900 block mb-1">AI Verdict</span>
+                <span className="font-semibold text-slate-900 block mb-1">
+                  {prediction.result === null ? 'Cancelled' : 'AI Verdict'}
+                </span>
                 {prediction.reason}
               </div>
            </div>

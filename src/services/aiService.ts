@@ -17,8 +17,8 @@ If it is impossible to determine (e.g., event hasn't happened yet), you must est
   const response = await ai.models.generateContent({
     model: "gemini-3.1-pro-preview", // Use Pro for better reasoning
     contents: prompt,
-    tools: [{ googleSearch: {} }],
     config: {
+      tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,

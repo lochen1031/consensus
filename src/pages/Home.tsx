@@ -8,6 +8,7 @@ import { BetModal } from '../components/BetModal';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { cancelAndRefundPrediction } from '../services/dbService';
 
 export const Home = () => {
   const { user } = useAuth();
@@ -15,6 +16,22 @@ export const Home = () => {
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
+
+  useEffect(() => {
+    // Background janitor: automatically clean up and refund expired predictions
+    const janitor = setInterval(() => {
+      setPredictions(current => {
+        current.forEach(p => {
+          if (p.status === 'active' && Date.now() >= p.deadline) {
+            cancelAndRefundPrediction(p.id).catch(err => console.error("Janitor error:", err));
+          }
+        });
+        return current;
+      });
+    }, 5000);
+
+    return () => clearInterval(janitor);
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'predictions'), orderBy('createdAt', 'desc'));
@@ -56,10 +73,10 @@ export const Home = () => {
          <div className="flex justify-center py-20">
             <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
          </div>
-      ) : predictions.length === 0 ? (
+      ) : predictions.filter(p => p.status === 'active' && Date.now() < p.deadline).length === 0 ? (
          <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
-            <h3 className="text-lg font-semibold text-slate-700 mb-1">No predictions yet</h3>
-            <p className="text-slate-500 mb-6">Be the first to create a prediction!</p>
+            <h3 className="text-lg font-semibold text-slate-700 mb-1">No active predictions</h3>
+            <p className="text-slate-500 mb-6">Be the first to create an active prediction!</p>
             {user && (
                <button 
                 onClick={() => setIsCreateOpen(true)}
@@ -71,12 +88,14 @@ export const Home = () => {
          </div>
       ) : (
         <div className="space-y-6">
-          {predictions.map(pred => (
-            <PredictionCard 
-              key={pred.id} 
-              prediction={pred} 
-              onBetClick={() => setSelectedPrediction(pred)}
-            />
+          {predictions
+            .filter(p => p.status === 'active' && Date.now() < p.deadline)
+            .map(pred => (
+              <PredictionCard 
+                key={pred.id} 
+                prediction={pred} 
+                onBetClick={() => setSelectedPrediction(pred)}
+              />
           ))}
         </div>
       )}
