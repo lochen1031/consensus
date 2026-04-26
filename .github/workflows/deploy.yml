@@ -2,8 +2,8 @@ name: Deploy Vite Site to Pages
 
 on:
   push:
-    branches: ["main"] # 當你推送到 main 分支時觸發
-  workflow_dispatch: # 允許手動觸發
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -11,25 +11,25 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm install
 
       - name: Build
-        # 這裡是最重要的地方：確保金鑰被讀取
+        # 這裡會讀取你在 GitHub Secrets 設定的金鑰
         run: npm run build
         env:
-          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Setup Pages

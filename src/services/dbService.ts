@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, runTransaction, Timestamp, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, runTransaction, Timestamp, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Prediction, Bet, UserProfile, OperationType, FirestoreErrorInfo } from '../lib/types';
 
@@ -194,62 +194,6 @@ export async function settlePrediction(predictionId: string, result: 'yes' | 'no
       result,
       reason
     });
-
-  } catch(err) {
-      handleFirestoreError(err, OperationType.WRITE, path);
-  }
-}
-
-export async function cancelAndRefundPrediction(predictionId: string) {
-  const predictionRef = doc(db, 'predictions', predictionId);
-  const path = `predictions/${predictionId}`;
-  
-  try {
-    let canProceed = false;
-    await runTransaction(db, async (t) => {
-      const predDoc = await t.get(predictionRef);
-      if (!predDoc.exists()) return;
-      const pred = predDoc.data() as Prediction;
-
-      if (pred.status !== 'active') {
-         return;
-      }
-
-      t.update(predictionRef, { status: 'resolving' });
-      canProceed = true;
-    });
-
-    if (!canProceed) return;
-
-    const betsQuery = query(collection(db, 'bets'), where('predictionId', '==', predictionId));
-    const betsSnapshot = await getDocs(betsQuery);
-
-    const userRefunds: Record<string, number> = {};
-    const betDocRefs: any[] = [];
-    betsSnapshot.forEach(betDoc => {
-      const bet = betDoc.data() as Bet;
-      userRefunds[bet.userId] = (userRefunds[bet.userId] || 0) + bet.amount;
-      betDocRefs.push(betDoc.ref);
-    });
-
-    for (const [userId, refund] of Object.entries(userRefunds)) {
-      await runTransaction(db, async (t) => {
-        const uRef = doc(db, 'users', userId);
-        const uDoc = await t.get(uRef);
-        if (uDoc.exists()) {
-           const u = uDoc.data() as UserProfile;
-           t.update(uRef, { points: u.points + refund });
-        }
-      });
-    }
-
-    // Delete the prediction
-    await deleteDoc(predictionRef);
-    
-    // Clean up bets as best effort
-    for (const ref of betDocRefs) {
-      await deleteDoc(ref).catch(() => {});
-    }
 
   } catch(err) {
       handleFirestoreError(err, OperationType.WRITE, path);
